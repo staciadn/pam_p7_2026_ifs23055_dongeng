@@ -14,86 +14,201 @@ class DongengService {
   Future<ApiResponse<List<DongengModel>>> getDongeng({String search = ''}) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongeng}')
         .replace(queryParameters: search.isNotEmpty ? {'search': search} : null);
+
     final response = await _client.get(uri);
+
+    // ✅ DEBUG (WAJIB, biar tau error backend)
+    print("STATUS: ${response.statusCode}");
+    print("BODY: ${response.body}");
+
     if (response.statusCode == 200) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      final dataMap = body['data'] as Map<String, dynamic>;
-      final List<dynamic> jsonList = dataMap['dongeng'] as List<dynamic>;
-      final list = jsonList
-          .map((e) => DongengModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-      return ApiResponse(success: true, message: body['message'] as String? ?? 'OK', data: list);
+      try {
+        final decoded = jsonDecode(response.body);
+
+        // ✅ pastikan response Map
+        if (decoded is! Map<String, dynamic>) {
+          return ApiResponse(
+            success: false,
+            message: "Format response bukan Map",
+            data: [],
+          );
+        }
+
+        final body = decoded;
+
+        // ✅ amanin data
+        final dataMap = body['data'];
+        if (dataMap == null || dataMap is! Map<String, dynamic>) {
+          return ApiResponse(
+            success: false,
+            message: "Field 'data' null / salah format",
+            data: [],
+          );
+        }
+
+        // ✅ amanin dongeng list
+        final jsonList = dataMap['dongeng'];
+        if (jsonList == null || jsonList is! List) {
+          return ApiResponse(
+            success: false,
+            message: "Field 'dongeng' bukan List / kosong",
+            data: [],
+          );
+        }
+
+        final list = jsonList
+            .map((e) => DongengModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+
+        return ApiResponse(
+          success: true,
+          message: body['message'] as String? ?? 'OK',
+          data: list,
+        );
+      } catch (e) {
+        return ApiResponse(
+          success: false,
+          message: "Parsing error: $e",
+          data: [],
+        );
+      }
     }
+
     return ApiResponse(success: false, message: _parseError(response));
   }
 
   Future<ApiResponse<DongengModel>> getDongengById(String id) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
     final response = await _client.get(uri);
+
     if (response.statusCode == 200) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      final dataMap = body['data'] as Map<String, dynamic>;
-      final item = DongengModel.fromJson(dataMap['dongeng'] as Map<String, dynamic>);
-      return ApiResponse(success: true, message: body['message'] as String? ?? 'OK', data: item);
+      try {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded is! Map<String, dynamic>) {
+          return ApiResponse(success: false, message: "Format response salah");
+        }
+
+        final body = decoded;
+        final dataMap = body['data'];
+
+        if (dataMap == null || dataMap is! Map<String, dynamic>) {
+          return ApiResponse(success: false, message: "Data null");
+        }
+
+        final itemJson = dataMap['dongeng'];
+        if (itemJson == null || itemJson is! Map<String, dynamic>) {
+          return ApiResponse(success: false, message: "Dongeng tidak valid");
+        }
+
+        final item = DongengModel.fromJson(itemJson);
+
+        return ApiResponse(
+          success: true,
+          message: body['message'] as String? ?? 'OK',
+          data: item,
+        );
+      } catch (e) {
+        return ApiResponse(success: false, message: "Parsing error: $e");
+      }
     }
+
     return ApiResponse(success: false, message: _parseError(response));
   }
 
   Future<ApiResponse<String>> createDongeng({
-    required String judul, required String asal,
-    required String sinopsis, required String pesan, required String tokoh,
-    File? imageFile, Uint8List? imageBytes, String imageFilename = 'image.jpg',
+    required String judul,
+    required String asal,
+    required String sinopsis,
+    required String pesan,
+    required String tokoh,
+    File? imageFile,
+    Uint8List? imageBytes,
+    String imageFilename = 'image.jpg',
   }) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongeng}');
     final request = http.MultipartRequest('POST', uri)
-      ..fields['judul'] = judul ..fields['asal'] = asal
-      ..fields['sinopsis'] = sinopsis ..fields['pesan'] = pesan
+      ..fields['judul'] = judul
+      ..fields['asal'] = asal
+      ..fields['sinopsis'] = sinopsis
+      ..fields['pesan'] = pesan
       ..fields['tokoh'] = tokoh;
+
     if (kIsWeb && imageBytes != null) {
       request.files.add(http.MultipartFile.fromBytes('file', imageBytes, filename: imageFilename));
     } else if (imageFile != null) {
       request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
     }
+
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
+
     if (response.statusCode == 201 || response.statusCode == 200) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      final dataMap = body['data'] as Map<String, dynamic>;
-      return ApiResponse(success: true, message: body['message'] as String? ?? 'OK', data: dataMap['dongengId'] as String);
+      try {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final dataMap = body['data'] as Map<String, dynamic>?;
+
+        return ApiResponse(
+          success: true,
+          message: body['message'] as String? ?? 'OK',
+          data: dataMap?['dongengId'] as String?,
+        );
+      } catch (e) {
+        return ApiResponse(success: false, message: "Parsing error: $e");
+      }
     }
+
     return ApiResponse(success: false, message: _parseError(response));
   }
 
   Future<ApiResponse<void>> updateDongeng({
-    required String id, required String judul, required String asal,
-    required String sinopsis, required String pesan, required String tokoh,
-    File? imageFile, Uint8List? imageBytes, String imageFilename = 'image.jpg',
+    required String id,
+    required String judul,
+    required String asal,
+    required String sinopsis,
+    required String pesan,
+    required String tokoh,
+    File? imageFile,
+    Uint8List? imageBytes,
+    String imageFilename = 'image.jpg',
   }) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
     final request = http.MultipartRequest('PUT', uri)
-      ..fields['judul'] = judul ..fields['asal'] = asal
-      ..fields['sinopsis'] = sinopsis ..fields['pesan'] = pesan
+      ..fields['judul'] = judul
+      ..fields['asal'] = asal
+      ..fields['sinopsis'] = sinopsis
+      ..fields['pesan'] = pesan
       ..fields['tokoh'] = tokoh;
+
     if (kIsWeb && imageBytes != null) {
       request.files.add(http.MultipartFile.fromBytes('file', imageBytes, filename: imageFilename));
     } else if (imageFile != null) {
       request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
     }
+
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
+
     if (response.statusCode == 200) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      return ApiResponse(success: true, message: body['message'] as String? ?? 'OK');
+      try {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return ApiResponse(success: true, message: body['message'] as String? ?? 'OK');
+      } catch (e) {
+        return ApiResponse(success: false, message: "Parsing error: $e");
+      }
     }
+
     return ApiResponse(success: false, message: _parseError(response));
   }
 
   Future<ApiResponse<void>> deleteDongeng(String id) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
     final response = await _client.delete(uri);
+
     if (response.statusCode == 200 || response.statusCode == 204) {
       return const ApiResponse(success: true, message: 'Berhasil dihapus.');
     }
+
     return ApiResponse(success: false, message: _parseError(response));
   }
 
@@ -101,7 +216,9 @@ class DongengService {
     try {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       return body['message'] as String? ?? 'Error ${response.statusCode}';
-    } catch (_) { return 'Error ${response.statusCode}'; }
+    } catch (_) {
+      return 'Error ${response.statusCode}';
+    }
   }
 
   void dispose() => _client.close();

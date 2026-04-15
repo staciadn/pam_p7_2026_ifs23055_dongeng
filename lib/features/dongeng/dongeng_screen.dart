@@ -39,7 +39,9 @@ class _DongengScreenState extends State<DongengScreen> {
           floatingActionButton: FloatingActionButton(
             onPressed: () async {
               final added = await context.push<bool>(RouteConstants.dongengAdd);
-              if (added == true && context.mounted) provider.loadDongeng();
+              if (added == true && context.mounted) {
+                provider.loadDongeng();
+              }
             },
             tooltip: 'Tambah Dongeng',
             child: const Icon(Icons.add),
@@ -52,11 +54,16 @@ class _DongengScreenState extends State<DongengScreen> {
   Widget _buildBody(DongengProvider provider) {
     return switch (provider.status) {
       DongengStatus.loading || DongengStatus.initial => const LoadingWidget(),
+
       DongengStatus.error => AppErrorWidget(
         message: provider.errorMessage,
         onRetry: provider.loadDongeng,
       ),
-      DongengStatus.success => _DongengBody(
+
+    // ✅ PERBAIKAN DI SINI (SESUAI YANG KAMU MINTA)
+      DongengStatus.success => (provider.dongengList.isEmpty)
+          ? const Center(child: Text("Data dongeng kosong"))
+          : _DongengBody(
         dongengList: provider.dongengList,
         onOpen: (id) => context.go(RouteConstants.dongengDetail(id)),
       ),
@@ -77,20 +84,25 @@ class _DongengBody extends StatelessWidget {
           margin: const EdgeInsets.all(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Text('Belum ada dongeng.',
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center),
+            child: Text(
+              'Belum ada dongeng.',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       );
     }
+
     return RefreshIndicator(
       onRefresh: () => context.read<DongengProvider>().loadDongeng(),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: dongengList.length,
-        itemBuilder: (context, index) =>
-            _DongengCard(dongeng: dongengList[index], onOpen: onOpen),
+        itemBuilder: (context, index) => _DongengCard(
+          dongeng: dongengList[index],
+          onOpen: onOpen,
+        ),
       ),
     );
   }
@@ -104,13 +116,18 @@ class _DongengCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => onOpen(dongeng.id!),
+        onTap: () {
+          if (dongeng.id != null) {
+            onOpen(dongeng.id!);
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -119,35 +136,58 @@ class _DongengCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
                   dongeng.gambar,
-                  width: 70, height: 70, fit: BoxFit.cover,
+                  width: 70,
+                  height: 70,
+                  fit: BoxFit.cover,
+
+                  // ✅ biar aman kalau gambar error
                   errorBuilder: (_, __, ___) => Container(
-                    width: 70, height: 70,
+                    width: 70,
+                    height: 70,
                     color: colorScheme.primaryContainer,
                     child: Icon(Icons.menu_book, color: colorScheme.primary),
                   ),
+
                   loadingBuilder: (_, child, progress) {
                     if (progress == null) return child;
-                    return SizedBox(width: 70, height: 70,
-                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+                    return const SizedBox(
+                      width: 70,
+                      height: 70,
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
                   },
                 ),
               ),
               const SizedBox(width: 12),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(dongeng.judul,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      dongeng.judul,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
-                    Text('📍 ${dongeng.asal}',
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: colorScheme.primary)),
+                    Text(
+                      '📍 ${dongeng.asal}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: colorScheme.primary),
+                    ),
                     const SizedBox(height: 4),
-                    Text(dongeng.sinopsis,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(
+                      dongeng.sinopsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
