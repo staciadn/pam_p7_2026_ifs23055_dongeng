@@ -2,7 +2,7 @@ class ApiConstants {
   ApiConstants._();
 
   static const String baseUrl =
-      'https://pam-2026-p7-ifs23055-be.delcom.org:8080';
+      'https://pam-2026-p4-ifs23055-be.stacia.fun:8080/';
 
   static const String plants = '/plants';
   static String plantById(String id) => '/plants/$id';
