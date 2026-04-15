@@ -47,14 +47,31 @@ class DongengService {
         }
 
         // ✅ amanin dongeng list
-        final jsonList = dataMap['dongeng'];
-        if (jsonList == null || jsonList is! List) {
+        dynamic jsonList;
+
+// kemungkinan 1: data.dongeng
+        if (dataMap['dongeng'] is List) {
+          jsonList = dataMap['dongeng'];
+        }
+
+// kemungkinan 2: data langsung List
+        else if (body['data'] is List) {
+          jsonList = body['data'];
+        }
+
+// kemungkinan 3: dongeng object (1 item)
+        else if (dataMap['dongeng'] is Map<String, dynamic>) {
+          jsonList = [dataMap['dongeng']];
+        }
+
+        else {
           return ApiResponse(
             success: false,
-            message: "Field 'dongeng' bukan List / kosong",
+            message: "Format data dari API tidak dikenali",
             data: [],
           );
         }
+        
 
         final list = jsonList
             .map((e) => DongengModel.fromJson(e as Map<String, dynamic>))
