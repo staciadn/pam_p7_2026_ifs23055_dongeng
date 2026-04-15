@@ -12,7 +12,7 @@ class DongengService {
   final http.Client _client;
 
   Future<ApiResponse<List<DongengModel>>> getDongeng({String search = ''}) async {
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongeng}')
+    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongeng}')
         .replace(queryParameters: search.isNotEmpty ? {'search': search} : null);
 
     final response = await _client.get(uri);
@@ -71,7 +71,7 @@ class DongengService {
             data: [],
           );
         }
-        
+
 
         final list = jsonList
             .map((e) => DongengModel.fromJson(e as Map<String, dynamic>))
@@ -95,7 +95,7 @@ class DongengService {
   }
 
   Future<ApiResponse<DongengModel>> getDongengById(String id) async {
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
+    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongengById(id)}');
     final response = await _client.get(uri);
 
     if (response.statusCode == 200) {
@@ -143,7 +143,7 @@ class DongengService {
     Uint8List? imageBytes,
     String imageFilename = 'image.jpg',
   }) async {
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongeng}');
+    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongeng}');
     final request = http.MultipartRequest('POST', uri)
       ..fields['judul'] = judul
       ..fields['asal'] = asal
@@ -189,7 +189,7 @@ class DongengService {
     Uint8List? imageBytes,
     String imageFilename = 'image.jpg',
   }) async {
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
+    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongengById(id)}');
     final request = http.MultipartRequest('PUT', uri)
       ..fields['judul'] = judul
       ..fields['asal'] = asal
@@ -219,7 +219,7 @@ class DongengService {
   }
 
   Future<ApiResponse<void>> deleteDongeng(String id) async {
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
+    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongengById(id)}');
     final response = await _client.delete(uri);
 
     if (response.statusCode == 200 || response.statusCode == 204) {

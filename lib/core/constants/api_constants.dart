@@ -1,8 +1,13 @@
 class ApiConstants {
   ApiConstants._();
 
+  // Backend Plants
   static const String baseUrl =
-      'https://pam-2026-p4-ifs23055-be.stacia.fun:8080/';
+      'https://pam-2026-p4-ifs23055-be.stacia.fun:8080';
+
+  // Backend Dongeng
+  static const String baseUrlDongeng =
+      'https://pam-2026-p7-ifs23055.stacia.fun:8080';
 
   static const String plants = '/plants';
   static String plantById(String id) => '/plants/$id';
