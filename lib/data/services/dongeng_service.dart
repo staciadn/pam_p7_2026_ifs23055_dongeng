@@ -12,69 +12,34 @@ class DongengService {
   final http.Client _client;
 
   Future<ApiResponse<List<DongengModel>>> getDongeng({String search = ''}) async {
-    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongeng}')
-        .replace(queryParameters: search.isNotEmpty ? {'search': search} : null);
+    try {
+      final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongeng}') // ← fix: baseUrl (bukan baseUrlDongeng)
+          .replace(queryParameters: search.isNotEmpty ? {'search': search} : null);
 
-    final response = await _client.get(uri);
+      final response = await _client.get(uri);
 
-    // ✅ DEBUG (WAJIB, biar tau error backend)
-    print("STATUS: ${response.statusCode}");
-    print("BODY: ${response.body}");
+      print("STATUS: ${response.statusCode}");
+      print("BODY: ${response.body}");
 
-    if (response.statusCode == 200) {
-      try {
-        final decoded = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = body['data'];
 
-        // ✅ pastikan response Map
-        if (decoded is! Map<String, dynamic>) {
-          return ApiResponse(
-            success: false,
-            message: "Format response bukan Map",
-            data: [],
-          );
+        List<dynamic> jsonList = [];
+
+        if (data is Map<String, dynamic>) {
+          if (data['dongeng'] is List) {
+            jsonList = data['dongeng'] as List;
+          } else if (data['dongeng'] is Map) {
+            jsonList = [data['dongeng']];
+          }
+        } else if (data is List) {
+          jsonList = data;
         }
-
-        final body = decoded;
-
-        // ✅ amanin data
-        final dataMap = body['data'];
-        if (dataMap == null || dataMap is! Map<String, dynamic>) {
-          return ApiResponse(
-            success: false,
-            message: "Field 'data' null / salah format",
-            data: [],
-          );
-        }
-
-        // ✅ amanin dongeng list
-        dynamic jsonList;
-
-// kemungkinan 1: data.dongeng
-        if (dataMap['dongeng'] is List) {
-          jsonList = dataMap['dongeng'];
-        }
-
-// kemungkinan 2: data langsung List
-        else if (body['data'] is List) {
-          jsonList = body['data'];
-        }
-
-// kemungkinan 3: dongeng object (1 item)
-        else if (dataMap['dongeng'] is Map<String, dynamic>) {
-          jsonList = [dataMap['dongeng']];
-        }
-
-        else {
-          return ApiResponse(
-            success: false,
-            message: "Format data dari API tidak dikenali",
-            data: [],
-          );
-        }
-
 
         final list = jsonList
-            .map((e) => DongengModel.fromJson(e as Map<String, dynamic>))
+            .whereType<Map<String, dynamic>>()
+            .map((e) => DongengModel.fromJson(e))
             .toList();
 
         return ApiResponse(
@@ -82,24 +47,20 @@ class DongengService {
           message: body['message'] as String? ?? 'OK',
           data: list,
         );
-      } catch (e) {
-        return ApiResponse(
-          success: false,
-          message: "Parsing error: $e",
-          data: [],
-        );
       }
-    }
 
-    return ApiResponse(success: false, message: _parseError(response));
+      return ApiResponse(success: false, message: _parseError(response), data: []);
+    } catch (e) {
+      return ApiResponse(success: false, message: 'Error jaringan: $e', data: []);
+    }
   }
 
   Future<ApiResponse<DongengModel>> getDongengById(String id) async {
-    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongengById(id)}');
-    final response = await _client.get(uri);
+    try {
+      final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
+      final response = await _client.get(uri);
 
-    if (response.statusCode == 200) {
-      try {
+      if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
 
         if (decoded is! Map<String, dynamic>) {
@@ -125,12 +86,12 @@ class DongengService {
           message: body['message'] as String? ?? 'OK',
           data: item,
         );
-      } catch (e) {
-        return ApiResponse(success: false, message: "Parsing error: $e");
       }
-    }
 
-    return ApiResponse(success: false, message: _parseError(response));
+      return ApiResponse(success: false, message: _parseError(response));
+    } catch (e) {
+      return ApiResponse(success: false, message: 'Error jaringan: $e');
+    }
   }
 
   Future<ApiResponse<String>> createDongeng({
@@ -143,7 +104,7 @@ class DongengService {
     Uint8List? imageBytes,
     String imageFilename = 'image.jpg',
   }) async {
-    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongeng}');
+    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongeng}');
     final request = http.MultipartRequest('POST', uri)
       ..fields['judul'] = judul
       ..fields['asal'] = asal
@@ -189,7 +150,7 @@ class DongengService {
     Uint8List? imageBytes,
     String imageFilename = 'image.jpg',
   }) async {
-    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongengById(id)}');
+    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
     final request = http.MultipartRequest('PUT', uri)
       ..fields['judul'] = judul
       ..fields['asal'] = asal
@@ -219,7 +180,7 @@ class DongengService {
   }
 
   Future<ApiResponse<void>> deleteDongeng(String id) async {
-    final uri = Uri.parse('${ApiConstants.baseUrlDongeng}${ApiConstants.dongengById(id)}');
+    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dongengById(id)}');
     final response = await _client.delete(uri);
 
     if (response.statusCode == 200 || response.statusCode == 204) {
